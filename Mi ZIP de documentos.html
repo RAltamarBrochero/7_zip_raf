@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mi ZIP de documentos</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--tx:#1b1f27;--mu:#667085;--ac:#1f4fd8;--bd:#d9dde5;--ok:#0a7d3c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#14161a;--card:#1e2128;--tx:#eceff4;--mu:#9aa3b2;--ac:#6c93ff;--bd:#343945;--ok:#58d68d}}
+:root[data-theme=dark]{--bg:#14161a;--card:#1e2128;--tx:#eceff4;--mu:#9aa3b2;--ac:#6c93ff;--bd:#343945;--ok:#58d68d}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.w{max-width:960px;margin:0 auto;padding:20px 16px}
+h1{font-size:22px;margin:0 0 4px}p.s{color:var(--mu);margin:0 0 16px}
+.c{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:14px}
+.drop{border:2px dashed var(--bd);border-radius:12px;padding:24px;text-align:center;color:var(--mu)}
+.drop.on{border-color:var(--ac);background:rgba(31,79,216,.07)}
+button{font:inherit;border:1px solid var(--ac);background:var(--ac);color:#fff;padding:9px 16px;border-radius:8px;cursor:pointer}
+button.g{background:transparent;color:var(--ac)}button:disabled{opacity:.4;cursor:default}
+button.i{padding:4px 9px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px 18px}
+label{font-size:14px}label.m{color:var(--mu);display:block}
+input[type=text],input[type=number],select{font:inherit;padding:6px 8px;border-radius:6px;border:1px solid var(--bd);background:var(--card);color:var(--tx);max-width:100%}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:620px}
+th,td{padding:6px 6px;border-bottom:1px solid var(--bd);text-align:left;font-size:14px;vertical-align:middle}
+th{color:var(--mu);font-weight:600}td input[type=text]{width:100%;min-width:180px}
+.hide{display:none}.mu{color:var(--mu);font-size:13px}.ok{color:var(--ok)}
+.bar{height:8px;background:var(--bd);border-radius:6px;overflow:hidden;margin-top:8px}.bar>i{display:block;height:100%;width:0;background:var(--ac)}
+</style></head><body><div class="w">
+<h1>Mi ZIP de documentos</h1>
+<p class="s">Reúne tus documentos, ordénalos, redúcelos si pesan mucho y descárgalos en un ZIP propio. Todo se hace en tu navegador: no se sube nada a ningún servidor, sin anuncios ni cobros.</p>
+
+<div class="c"><div class="drop" id="dz"><p style="margin:0 0 10px">Arrastra aquí tus archivos (Word, PDF, Excel, imágenes, lo que sea)</p>
+<div class="row" style="justify-content:center"><button id="b1">Agregar archivos</button><button class="g" id="b2">Agregar una carpeta</button></div>
+<input type="file" id="f1" class="hide" multiple><input type="file" id="f2" class="hide" webkitdirectory multiple></div></div>
+
+<div class="c"><b>Descomprimir un ZIP</b><p class="mu" style="margin:4px 0 10px">Abre un ZIP para ver lo que trae, descargar cada archivo o pasarlo a tu lista y volver a empacarlo. No funciona con ZIP protegidos con contraseña.</p>
+<div class="row"><button class="g" id="b3">Elegir un ZIP para abrir</button></div><input type="file" id="f3" class="hide" accept=".zip,application/zip">
+<p class="mu" id="zs"></p><div id="zl" class="hide"><div class="row" style="margin-bottom:8px"><button id="zall">Descargar todos</button><button class="g" id="zadd">Pasar todos a mi lista</button></div><div class="tw"><table><tbody id="zt"></tbody></table></div></div></div>
+
+<div class="c hide" id="lc"><div class="tw"><table><thead><tr><th>#</th><th>Nombre dentro del ZIP</th><th>Tamaño</th><th>Si es imagen</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
+<p class="mu" id="tot" style="margin:10px 0 0"></p></div>
+
+<div class="c hide" id="oc"><div class="opts">
+<label class="m">Nombre del ZIP<br><input type="text" id="zn" value="documentos"></label>
+<label class="m">Compresión<br><select id="lv"><option value="6">Normal</option><option value="9">Máxima (más lenta)</option><option value="0">Ninguna (más rápida)</option></select></label>
+<label><input type="checkbox" id="nu" checked> Numerar archivos (01-, 02-…) en el orden de la lista</label>
+<label><input type="checkbox" id="rd"> Reducir todas las imágenes (máx. 1800 px, JPG)</label>
+<label><input type="checkbox" id="mg"> Unir todas las imágenes en un solo PDF</label>
+<label class="m"><input type="checkbox" id="sp"> Dividir en varios ZIP de máx. <input type="number" id="mx" value="10" min="1" max="500" style="width:70px"> MB</label>
+</div>
+<p class="mu" style="margin-bottom:0">Word, PDF y Excel se guardan tal cual (no se convierten entre sí en el navegador). Las imágenes sí se pueden reducir o convertir a PDF.</p>
+<div class="row" style="margin-top:12px"><button id="go">Crear ZIP</button><button class="g" id="cl">Vaciar lista</button></div>
+<div class="bar hide" id="br"><i id="bi"></i></div><p class="mu" id="st"></p></div>
+
+<div class="c hide" id="rc"><b>Listo para descargar</b><div id="rs" style="margin-top:8px"></div></div>
+</div>
+<script>
+const $=i=>document.getElementById(i);let items=[],uid=0,lastParts=[];
+const isImg=f=>/^image\/(jpeg|png|webp|gif|bmp)$/.test(f.type);
+const sz=n=>n<1024?n+' B':n<1048576?(n/1024).toFixed(0)+' KB':(n/1048576).toFixed(1)+' MB';
+function add(fs){for(const f of fs)items.push({id:++uid,f,name:f.name,mode:'orig'});render()}
+$('b1').onclick=()=>$('f1').click();$('b2').onclick=()=>$('f2').click();
+$('f1').onchange=e=>{add([...e.target.files]);e.target.value=''};
+$('f2').onchange=e=>{add([...e.target.files]);e.target.value=''};
+const dz=$('dz');['dragover','dragenter'].forEach(v=>dz.addEventListener(v,e=>{e.preventDefault();dz.classList.add('on')}));
+['dragleave','drop'].forEach(v=>dz.addEventListener(v,e=>{e.preventDefault();dz.classList.remove('on')}));
+dz.addEventListener('drop',e=>add([...e.dataTransfer.files]));
+function render(){const has=items.length>0;['lc','oc'].forEach(i=>$(i).classList.toggle('hide',!has));
+ $('tb').innerHTML='';items.forEach((it,k)=>{const tr=document.createElement('tr');
+  const td=h=>{const d=document.createElement('td');if(typeof h==='string')d.textContent=h;else d.appendChild(h);tr.appendChild(d);return d};
+  td(String(k+1));const inp=document.createElement('input');inp.type='text';inp.value=it.name;inp.oninput=()=>it.name=inp.value;td(inp);
+  td(sz(it.f.size));
+  if(isImg(it.f)){const s=document.createElement('select');[['orig','Dejar igual'],['small','Reducir (JPG)'],['pdf','Convertir a PDF']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;if(it.mode===v)o.selected=true;s.appendChild(o)});s.onchange=()=>it.mode=s.value;td(s)}else td('—');
+  const a=document.createElement('div');a.className='row';a.style.gap='4px';
+  [['↑',()=>mv(k,-1)],['↓',()=>mv(k,1)],['✕',()=>{items.splice(k,1);render()}]].forEach(([t,fn])=>{const b=document.createElement('button');b.className='g i';b.textContent=t;b.onclick=fn;a.appendChild(b)});td(a);$('tb').appendChild(tr)});
+ $('tot').textContent=items.length+' archivo(s) · '+sz(items.reduce((s,i)=>s+i.f.size,0))}
+function mv(k,d){const j=k+d;if(j<0||j>=items.length)return;[items[k],items[j]]=[items[j],items[k]];render()}
+$('cl').onclick=()=>{items=[];$('rc').classList.add('hide');render()};
+const load=f=>new Promise((ok,no)=>{const u=URL.createObjectURL(f),i=new Image();i.onload=()=>{URL.revokeObjectURL(u);ok(i)};i.onerror=no;i.src=u});
+async function jpg(f,max,q){const i=await load(f);let s=Math.min(1,max/Math.max(i.width,i.height));const c=document.createElement('canvas');c.width=Math.round(i.width*s);c.height=Math.round(i.height*s);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(i,0,0,c.width,c.height);return new Promise(r=>c.toBlob(r,'image/jpeg',q))}
+async function pdf(files){const J=window.jspdf.jsPDF;let d;for(let k=0;k<files.length;k++){const b=await jpg(files[k],2200,.9),i=await load(b),o=i.width>i.height?'l':'p';
+ if(k===0)d=new J({orientation:o,unit:'px',format:[i.width,i.height],hotfixes:['px_scaling']});else d.addPage([i.width,i.height],o);
+ const u=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(b)});d.addImage(u,'JPEG',0,0,i.width,i.height)}return d.output('blob')}
+const safe=n=>n.replace(/[\\/:*?"<>|]+/g,'_').trim()||'archivo';
+const swap=(n,e)=>n.replace(/\.[^.]+$/,'')+'.'+e;
+async function save(blob,name){const d=window.claude&&claude.use?await claude.use('downloads'):null;
+ if(d){try{await d.save({filename:name,data:blob})}catch(e){if(e&&e.code==='rejected_extension'){try{const z=new JSZip();z.file(name,blob);await d.save({filename:name+'.zip',data:await z.generateAsync({type:'blob'})});note('Ese tipo de archivo no se puede descargar suelto aquí; se guardó dentro de un ZIP.')}catch(_){}}else if(e&&e.code!=='declined')note('No se pudo guardar: '+(e.message||e.code))}return}
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}
+$('go').onclick=async()=>{const btn=$('go');btn.disabled=true;$('br').classList.remove('hide');$('rc').classList.add('hide');
+ try{const out=[],mg=$('mg').checked,rd=$('rd').checked,imgs=[];
+  for(let k=0;k<items.length;k++){const it=items[k];$('st').textContent='Preparando '+(k+1)+'/'+items.length+'…';let blob=it.f,name=safe(it.name);
+   if(isImg(it.f)){if(mg){imgs.push(it.f);continue}
+    if(it.mode==='pdf'){blob=await pdf([it.f]);name=swap(name,'pdf')}
+    else if(it.mode==='small'||rd){blob=await jpg(it.f,1800,.8);name=swap(name,'jpg')}}
+   out.push({name,blob})}
+  if(imgs.length){$('st').textContent='Uniendo imágenes en PDF…';out.push({name:'imagenes-unidas.pdf',blob:await pdf(imgs)})}
+  if($('nu').checked)out.forEach((o,k)=>o.name=String(k+1).padStart(2,'0')+'-'+o.name);
+  const seen={};out.forEach(o=>{const n=o.name.toLowerCase();if(seen[n]){const m=o.name.match(/^(.*?)(\.[^.]*)?$/);o.name=m[1]+'-'+(++seen[n])+(m[2]||'')}else seen[n]=1});
+  const max=$('sp').checked?Math.max(1,+$('mx').value)*1048576:Infinity,parts=[];let cur=[],s=0;
+  for(const o of out){if(cur.length&&s+o.blob.size>max){parts.push(cur);cur=[];s=0}cur.push(o);s+=o.blob.size}if(cur.length)parts.push(cur);
+  const base=safe($('zn').value||'documentos');lastParts=[];
+  for(let p=0;p<parts.length;p++){const z=new JSZip();parts[p].forEach(o=>z.file(o.name,o.blob));
+   const b=await z.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:+$('lv').value}},m=>{$('bi').style.width=((p+m.percent/100)/parts.length*100)+'%';$('st').textContent='Comprimiendo parte '+(p+1)+'/'+parts.length+'…'});
+   lastParts.push({name:base+(parts.length>1?'-parte'+(p+1):'')+'.zip',blob:b,n:parts[p].length})}
+  $('bi').style.width='100%';$('st').textContent='';const rs=$('rs');rs.innerHTML='';
+  lastParts.forEach(p=>{const r=document.createElement('div');r.className='row';r.style.marginBottom='6px';const t=document.createElement('span');t.textContent=p.name+' · '+p.n+' archivo(s) · '+sz(p.blob.size);const b=document.createElement('button');b.textContent='Descargar';b.onclick=()=>save(p.blob,p.name);r.appendChild(t);r.appendChild(b);rs.appendChild(r)});
+  $('rc').classList.remove('hide')}
+ catch(e){$('st').textContent='Error: '+(e.message||e)}
+ btn.disabled=false};
+const note=t=>{$('zs').textContent=t;$('st').textContent=t};
+let zents=[];
+$('b3').onclick=()=>$('f3').click();
+$('f3').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)openZip(f)};
+async function openZip(f){note('Leyendo el ZIP…');$('zl').classList.add('hide');
+ try{const z=await JSZip.loadAsync(f);zents=[];z.forEach((p,en)=>{if(!en.dir)zents.push(en)});
+  if(!zents.length){note('El ZIP está vacío.');return}
+  const tb=$('zt');tb.innerHTML='';
+  zents.forEach((en,k)=>{const tr=document.createElement('tr');const t1=document.createElement('td');t1.textContent=en.name;const t2=document.createElement('td');const b=document.createElement('button');b.className='g i';b.textContent='Descargar';b.onclick=async()=>save(await en.async('blob'),en.name.split('/').pop());t2.appendChild(b);tr.appendChild(t1);tr.appendChild(t2);tb.appendChild(tr)});
+  $('zl').classList.remove('hide');note(zents.length+' archivo(s) dentro de «'+f.name+'».')}
+ catch(e){note(/ncrypt/i.test(e.message||'')?'Este ZIP tiene contraseña y no se puede abrir aquí.':'No se pudo abrir el ZIP: '+(e.message||e))}}
+$('zall').onclick=async()=>{for(const en of zents)await save(await en.async('blob'),en.name.split('/').pop())};
+$('zadd').onclick=async()=>{const fs=[];for(const en of zents){const b=await en.async('blob');fs.push(new File([b],en.name.split('/').pop(),{type:b.type}))}add(fs);note(fs.length+' archivo(s) pasados a tu lista; ya puedes reordenarlos y crear un ZIP nuevo.')};
+</script></body></html>
